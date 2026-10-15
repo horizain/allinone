@@ -1,0 +1,4 @@
+/* STM32F103C8T6: constrain upstream xB target to the rated 64 KiB flash. */
+&flash0 {
+    reg = <0x08000000 DT_SIZE_K(64)>;
+};
