@@ -21,5 +21,6 @@ if [ "$target" = stm32f103c8 ]; then
   extra=(-- "-DDTC_OVERLAY_FILE=$root/config/boards/stm32f103c8.overlay")
 fi
 cd "$ZEPHYR_BASE/.."
+# Bash 3.2 treats an empty array as unset under nounset.
 west build -b "$board" "$ZEPHYR_BASE/samples/hello_world" \
-  -d "$ALLINONE_ENV_DIR/zephyr-builds/$name" "-o=-j${BUILD_JOBS:-4}" "${extra[@]}"
+  -d "$ALLINONE_ENV_DIR/zephyr-builds/$name" "-o=-j${BUILD_JOBS:-4}" ${extra[@]+"${extra[@]}"}

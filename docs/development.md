@@ -30,12 +30,31 @@ Zephyr 模块版本由固定 Zephyr 提交中的上游 manifest 决定。
 
 ## 初始化
 
-支持 Linux x86_64；Windows 使用 WSL2。需要 Bash、Python 3.12（含 venv/pip）、
-Git、curl、tar、xz、make。Ubuntu 可先安装系统依赖：
+支持 Linux x86_64 和 macOS Apple Silicon（M 系列芯片，原生 arm64 shell）；
+Windows 使用 WSL2。固定的 SDK 1.0.1 没有 macOS Intel 工具链，暂不支持 Intel Mac
+或 Rosetta x86_64 shell。需要 Bash、Python 3.12+（含 venv/pip）、
+Git、curl、tar、xz、make，以及 `sha256sum` 或 macOS 自带的 `shasum`。
+兼容 macOS 自带的 Bash 3.2。Ubuntu 可先安装系统依赖（系统 Python 需为 3.12+）：
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3 python3-venv python3-pip git curl tar xz-utils make
+```
+
+macOS 先安装 [Apple Command Line Tools](https://developer.apple.com/xcode/resources/)
+和 [Homebrew](https://brew.sh/)，再安装依赖：
+
+```bash
+xcode-select --install
+brew install python@3.12 xz dtc
+```
+
+按 Homebrew 安装提示将其加入 `PATH`。脚本优先查找 `python3.12`、`python3.13`、
+`python3.14`，最后尝试 `python3`，避免使用 macOS 较旧的系统 Python。
+也可显式指定解释器，例如：
+
+```bash
+PYTHON_BIN="$(brew --prefix python@3.12)/bin/python3.12" bash scripts/setup.sh
 ```
 
 需要至少 6 GiB 可用空间，以及 GitHub（包括下载重定向域名）和 PyPI 网络访问。
@@ -47,7 +66,11 @@ sudo apt-get install -y python3 python3-venv python3-pip git curl tar xz-utils m
 bash scripts/setup.sh
 ```
 
-脚本安装 ARM 与 ESP32-S3 工具链及所需模块，验证 SDK SHA-256，生成激活脚本。
+脚本按主机平台安装 ARM 与 ESP32-S3 工具链、SDK 主机工具及所需模块，
+只下载当前平台的归档，验证 SDK SHA-256，生成激活脚本。
+macOS 使用 `macos-aarch64` 工具链及主机工具，Linux 使用 `linux-x86_64`。
+macOS 的 SDK minimal 包已包含 QEMU 和 OpenOCD，DTC 通过 Homebrew 安装；
+Linux 的 SDK 主机工具同时提供 DTC。
 初始化本身不执行构建或测试；重复运行会刷新 Python/模块依赖并复用已下载文件。
 Python 顶层工具版本固定，Zephyr Python 依赖按上游 requirements 约束解析。
 不会自动追踪最新稳定版。升级时应一并核对 `config/zephyr-versions.env`、
@@ -63,7 +86,8 @@ bash scripts/build.sh
 
 已有 Zephyr 检出必须匹配固定提交；脚本不自动切分支、重置或覆盖本地修改。
 不要并发执行多个安装或 QEMU 测试。使用已有隔离检出，无需创建 Git worktree。
-虚拟环境与构建缓存含绝对路径，移动仓库或环境目录后应使用新目录重新初始化。
+虚拟环境与构建缓存含绝对路径，移动仓库或环境目录、切换主机平台或升级 Python
+后应使用新目录重新初始化；不要在 Linux 与 macOS 间共享同一个环境目录。
 
 ## 构建与测试
 
@@ -90,7 +114,8 @@ ESP32-S3 实际模块的 Flash、PSRAM 和引脚待确认，当前未准备或�
 `test.sh` 在 `qemu_cortex_m3` 上运行官方 `tests/kernel/threads/thread_apis`。
 检查真实测试汇总及 west 退出状态，在成功后通过 QEMU monitor 正常退出；
 测试运行超时为 60 秒，日志位于环境目录的 `zephyr-onboarding/qemu-verified.log`。
-此前固定版本验证为三目标构建通过、QEMU 41 项通过、0 项失败、2 项跳过
+固定版本已在 Linux x86_64 与 macOS Apple Silicon 上验证：三目标构建通过，
+QEMU 41 项通过、0 项失败、2 项跳过
 （`test_thread_name_user_get_set`、`test_threads_cpu_mask`）。
 QEMU 测试不代表三款芯片的真机行为。
 
